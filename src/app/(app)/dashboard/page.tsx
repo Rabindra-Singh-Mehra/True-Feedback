@@ -3,6 +3,16 @@
 import { MessageCard } from '@/components/MessageCard';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/components/ui/use-toast';
 import { Message } from '@/model/User';
@@ -14,12 +24,16 @@ import { User } from 'next-auth';
 import { useSession } from 'next-auth/react';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
+import * as z from 'zod';
 import { AcceptMessageSchema } from '@/schemas/acceptMessageSchema';
+import { messageSchema } from '@/schemas/messageSchema';
 
 function UserDashboard() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSwitchLoading, setIsSwitchLoading] = useState(false);
+  const [isSending, setIsSending] = useState(false);
+  const [targetInput, setTargetInput] = useState('');
 
   const { toast } = useToast();
 
@@ -35,6 +49,60 @@ function UserDashboard() {
 
   const { register, watch, setValue } = form;
   const acceptMessages = watch('acceptMessages');
+
+  const sendForm = useForm<z.infer<typeof messageSchema>>({
+    resolver: zodResolver(messageSchema),
+  });
+  const messageContent = sendForm.watch('content');
+
+  const extractUsername = (input: string): string | null => {
+    if (!input) return null;
+    const trimmed = input.trim();
+    try {
+      const url = new URL(trimmed);
+      const parts = url.pathname.split('/').filter(Boolean);
+      const last = parts[parts.length - 1];
+      return last || null;
+    } catch {
+      const cleaned = trimmed
+        .replace(/^@/, '')
+        .replace(/^u\//, '')
+        .replace(/^\/?u\//, '');
+      if (!cleaned) return null;
+      return cleaned;
+    }
+  };
+
+  const onSendSubmit = async (data: z.infer<typeof messageSchema>) => {
+    const targetUsername = extractUsername(targetInput);
+    if (!targetUsername) {
+      toast({
+        title: 'Invalid target',
+        description: 'Enter a valid username or profile link',
+        variant: 'destructive',
+      });
+      return;
+    }
+    setIsSending(true);
+    try {
+      const response = await axios.post<ApiResponse>('/api/send-message', {
+        content: data.content,
+        username: targetUsername,
+      });
+      toast({ title: response.data.message });
+      sendForm.reset({ content: '' } as any);
+    } catch (error) {
+      const axiosError = error as AxiosError<ApiResponse>;
+      toast({
+        title: 'Error',
+        description:
+          axiosError.response?.data.message ?? 'Failed to send message',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSending(false);
+    }
+  };
 
   const fetchAcceptMessages = useCallback(async () => {
     setIsSwitchLoading(true);
@@ -136,6 +204,43 @@ function UserDashboard() {
   return (
     <div className="my-8 mx-4 md:mx-8 lg:mx-auto p-6 bg-white rounded w-full max-w-6xl">
       <h1 className="text-4xl font-bold mb-4">User Dashboard</h1>
+
+      <div className="mb-6 border rounded p-4">
+        <h2 className="text-lg font-semibold mb-2">Send a message</h2>
+        <Form {...sendForm}>
+          <form onSubmit={sendForm.handleSubmit(onSendSubmit)} className="space-y-4">
+            <div>
+              <FormLabel>Target user</FormLabel>
+              <Input
+                placeholder="username or profile link (e.g. https://site/u/johndoe)"
+                value={targetInput}
+                onChange={(e) => setTargetInput(e.target.value)}
+              />
+            </div>
+            <FormField
+              control={sendForm.control}
+              name={"content" as any}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Your message</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="Write your anonymous message here"
+                      className="resize-none"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <Button type="submit" disabled={isSending || !messageContent || !targetInput}>
+              {isSending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              {isSending ? 'Sending...' : 'Send Message'}
+            </Button>
+          </form>
+        </Form>
+      </div>
 
       <div className="mb-4">
         <h2 className="text-lg font-semibold mb-2">Copy Your Unique Link</h2>{' '}

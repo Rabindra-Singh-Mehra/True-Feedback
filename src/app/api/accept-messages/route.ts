@@ -66,6 +66,11 @@ export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
   const user = session?.user;
 
+  console.log('Accept messages GET API called:');
+  console.log('Session:', session ? 'exists' : 'null');
+  console.log('User from session:', user);
+  console.log('User ID from session:', user?._id);
+
   // Check if the user is authenticated
   if (!session || !user) {
     return Response.json(
@@ -77,6 +82,8 @@ export async function GET(request: Request) {
   try {
     // Retrieve the user from the database using the ID
     const foundUser = await UserModel.findById(user._id);
+    console.log('User lookup result:', foundUser ? 'found' : 'not found');
+    console.log('Looking for user with ID:', user._id);
 
     if (!foundUser) {
       // User not found

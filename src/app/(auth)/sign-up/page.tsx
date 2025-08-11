@@ -47,12 +47,19 @@ export default function SignUpForm() {
         description: response.data.message,
       });
 
-      router.replace('/verify'); // Updated to reflect new backend flow
+      // Redirect to sign-in since verification is no longer required
+      router.replace('/sign-in');
     } catch (error) {
       const axiosError = error as AxiosError<ApiResponse>;
-      const errorMessage =
-        axiosError.response?.data.message ||
-        'There was a problem with your sign-up. Please try again.';
+      let errorMessage = 'There was a problem with your sign-up. Please try again.';
+      
+      if (axiosError.response?.data?.message) {
+        errorMessage = axiosError.response.data.message;
+      } else if (axiosError.code === 'NETWORK_ERROR') {
+        errorMessage = 'Network error. Please check your internet connection.';
+      } else if (axiosError.code === 'ECONNREFUSED') {
+        errorMessage = 'Unable to connect to the server. Please try again later.';
+      }
 
       toast({
         title: 'Sign Up Failed',
@@ -93,9 +100,7 @@ export default function SignUpForm() {
                 <FormItem>
                   <FormLabel>Email</FormLabel>
                   <Input {...field} />
-                  <p className="text-muted text-gray-400 text-sm">
-                    We will send you a verification code
-                  </p>
+                  {/* Verification code no longer required */}
                   <FormMessage />
                 </FormItem>
               )}

@@ -14,17 +14,22 @@ async function dbConnect(): Promise<void> {
   }
 
   try {
+    // Check if MONGODB_URI is provided
+    if (!process.env.MONGODB_URI) {
+      throw new Error('MONGODB_URI environment variable is not set');
+    }
+
     // Attempt to connect to the database
-    const db = await mongoose.connect(process.env.MONGODB_URI || '', {});
+    const db = await mongoose.connect(process.env.MONGODB_URI, {});
 
     connection.isConnected = db.connections[0].readyState;
 
     console.log('Database connected successfully');
   } catch (error) {
     console.error('Database connection failed:', error);
-
-    // Graceful exit in case of a connection error
-    process.exit(1);
+    
+    // Don't exit the process, just throw the error to be handled by the calling function
+    throw new Error(`Database connection failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
 

@@ -8,7 +8,13 @@ import { authOptions } from '../auth/[...nextauth]/options';
 export async function GET(request: Request) {
   await dbConnect();
   const session = await getServerSession(authOptions);
-  const _user: User = session?.user;
+  const _user: User & { _id?: string; username?: string } = session?.user as any;
+
+  console.log('Get messages API called:');
+  console.log('Session:', session ? 'exists' : 'null');
+  console.log('User from session:', _user);
+  console.log('User ID from session:', _user?._id);
+  console.log('Username from session:', _user?.username);
 
   if (!session || !_user) {
     return Response.json(
@@ -16,27 +22,39 @@ export async function GET(request: Request) {
       { status: 401 }
     );
   }
-  const userId = new mongoose.Types.ObjectId(_user._id);
-  try {
-    const user = await UserModel.aggregate([
-      { $match: { _id: userId } },
-      { $unwind: '$messages' },
-      { $sort: { 'messages.createdAt': -1 } },
-      { $group: { _id: '$_id', messages: { $push: '$messages' } } },
-    ]).exec();
 
-    if (!user || user.length === 0) {
+  try {
+    let userDoc = null as any;
+
+    if (_user._id) {
+      try {
+        const userId = new mongoose.Types.ObjectId(_user._id);
+        console.log('Converted user ID:', userId.toHexString());
+        userDoc = await UserModel.findById(userId).select('messages username');
+        console.log('Direct user lookup by _id:', userDoc ? 'found' : 'not found');
+      } catch (e) {
+        console.warn('Invalid _id in session, skipping ObjectId findById');
+      }
+    }
+
+    if (!userDoc && _user.username) {
+      userDoc = await UserModel.findOne({ username: _user.username }).select('messages username');
+      console.log('Fallback user lookup by username:', userDoc ? 'found' : 'not found');
+    }
+
+    if (!userDoc) {
       return Response.json(
         { message: 'User not found', success: false },
         { status: 404 }
       );
     }
 
+    const messages = Array.isArray(userDoc.messages) ? [...userDoc.messages] : [];
+    messages.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
     return Response.json(
-      { messages: user[0].messages },
-      {
-        status: 200,
-      }
+      { messages, success: true },
+      { status: 200 }
     );
   } catch (error) {
     console.error('An unexpected error occurred:', error);
