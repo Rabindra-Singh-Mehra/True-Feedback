@@ -22,7 +22,7 @@ import axios, { AxiosError } from 'axios';
 import { Loader2, RefreshCcw } from 'lucide-react';
 import { User } from 'next-auth';
 import { useSession } from 'next-auth/react';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { AcceptMessageSchema } from '@/schemas/acceptMessageSchema';
@@ -34,6 +34,9 @@ function UserDashboard() {
   const [isSwitchLoading, setIsSwitchLoading] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [targetInput, setTargetInput] = useState('');
+  const [suggestions, setSuggestions] = useState<{ username: string; isAcceptingMessages: boolean }[]>([]);
+  const [isSuggesting, setIsSuggesting] = useState(false);
+  const suppressNextSuggestRef = useRef(false);
 
   const { toast } = useToast();
 
@@ -91,6 +94,7 @@ function UserDashboard() {
       });
       toast({ title: response.data.message });
       sendForm.reset({ content: '' } as any);
+      setSuggestions([]);
     } catch (error) {
       const axiosError = error as AxiosError<ApiResponse>;
       toast({
@@ -103,6 +107,38 @@ function UserDashboard() {
       setIsSending(false);
     }
   };
+
+  const fetchUserSuggestions = useCallback(
+    async (query: string) => {
+      const q = query.trim();
+      if (q.length < 2) {
+        setSuggestions([]);
+        return;
+      }
+      setIsSuggesting(true);
+      try {
+        const res = await axios.get('/api/search-users', { params: { q } });
+        setSuggestions(res.data.users ?? []);
+      } catch (e) {
+        setSuggestions([]);
+      } finally {
+        setIsSuggesting(false);
+      }
+    },
+    []
+  );
+
+  useEffect(() => {
+    const id = setTimeout(() => {
+      if (suppressNextSuggestRef.current) {
+        suppressNextSuggestRef.current = false;
+        setSuggestions([]);
+        return;
+      }
+      fetchUserSuggestions(targetInput);
+    }, 250);
+    return () => clearTimeout(id);
+  }, [targetInput, fetchUserSuggestions]);
 
   const fetchAcceptMessages = useCallback(async () => {
     setIsSwitchLoading(true);
@@ -201,11 +237,16 @@ function UserDashboard() {
     });
   };
 
+  const displayName = username || 'User';
+  const possessiveTitle = displayName.endsWith('s')
+    ? `${displayName}' Dashboard`
+    : `${displayName}'s Dashboard`;
+
   return (
     <div className="my-8 mx-4 md:mx-8 lg:mx-auto p-6 bg-white rounded w-full max-w-6xl">
-      <h1 className="text-4xl font-bold mb-4">User Dashboard</h1>
+      <h1 className="text-4xl font-bold mb-4">{possessiveTitle}</h1>
 
-      <div className="mb-6 border rounded p-4">
+      <div className="mb-6 border rounded p-4 bg-white">
         <h2 className="text-lg font-semibold mb-2">Send a message</h2>
         <Form {...sendForm}>
           <form onSubmit={sendForm.handleSubmit(onSendSubmit)} className="space-y-4">
@@ -216,6 +257,30 @@ function UserDashboard() {
                 value={targetInput}
                 onChange={(e) => setTargetInput(e.target.value)}
               />
+              {targetInput && suggestions.length > 0 && (
+                <div className="mt-2 border rounded divide-y">
+                  {suggestions.map((s) => (
+                    <button
+                      key={s.username}
+                      type="button"
+                      className="w-full text-left p-2 hover:bg-gray-50"
+                      onClick={() => {
+                        setTargetInput(s.username);
+                        setSuggestions([]);
+                        suppressNextSuggestRef.current = true;
+                      }}
+                    >
+                      @{s.username}
+                      {!s.isAcceptingMessages && (
+                        <span className="ml-2 text-xs text-gray-500">not accepting</span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {isSuggesting && (
+                <div className="text-sm text-gray-500 mt-1">Searching…</div>
+              )}
             </div>
             <FormField
               control={sendForm.control}
