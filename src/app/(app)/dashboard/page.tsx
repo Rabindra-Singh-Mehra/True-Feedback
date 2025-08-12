@@ -349,13 +349,13 @@ function UserDashboard() {
       </Button>
       <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-6">
         {messages.length > 0 ? (
-          messages.map((message, index) => (
-            <MessageCard
-              key={message._id}
-              message={message}
-              onMessageDelete={handleDeleteMessage}
-            />
-          ))
+          messages.map((message, index) => {
+            return (
+              <div key={message._id} className="transition-transform hover:-translate-y-0.5">
+                <MessageCard message={message} onMessageDelete={handleDeleteMessage} />
+              </div>
+            );
+          })
         ) : (
           <p>No messages to display.</p>
         )}
