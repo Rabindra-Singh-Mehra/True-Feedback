@@ -50,7 +50,7 @@ export function MessageCard({ message, onMessageDelete }: MessageCardProps) {
   };
 
   return (
-    <Card className="rounded-xl border border-slate-200 bg-white/90 shadow-sm transition-shadow hover:shadow-md">
+    <Card className="rounded-xl border border-slate-200 bg-slate-50 shadow-sm transition-shadow hover:shadow-md">
       <CardHeader className="space-y-1">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center">

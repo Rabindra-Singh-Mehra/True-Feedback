@@ -243,8 +243,9 @@ function UserDashboard() {
     : `${displayName}'s Dashboard`;
 
   return (
-    <div className="my-8 mx-4 md:mx-8 lg:mx-auto p-6 bg-white rounded w-full max-w-6xl">
-      <h1 className="text-4xl font-bold mb-4">{possessiveTitle}</h1>
+    <div className="min-h-screen bg-gradient-to-b from-slate-200 via-slate-300 to-slate-400 py-10">
+      <div className="my-8 mx-4 md:mx-8 lg:mx-auto p-6 rounded w-full max-w-6xl bg-white shadow-xl">
+        <h1 className="text-4xl font-bold mb-4">{possessiveTitle}</h1>
 
       <div className="mb-6 border rounded p-4 bg-white">
         <h2 className="text-lg font-semibold mb-2">Send a message</h2>
@@ -359,6 +360,7 @@ function UserDashboard() {
         ) : (
           <p>No messages to display.</p>
         )}
+      </div>
       </div>
     </div>
   );
