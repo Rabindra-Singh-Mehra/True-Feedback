@@ -315,7 +315,7 @@ function UserDashboard() {
             type="text"
             value={profileUrl}
             disabled
-            className="input input-bordered w-full p-2 mr-2"
+            className="border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full mr-2"
           />
           <Button onClick={copyToClipboard}>Copy</Button>
         </div>

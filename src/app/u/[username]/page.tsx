@@ -96,7 +96,7 @@ export default function SendMessage() {
   };
 
   return (
-    <div className="container mx-auto my-8 p-6 bg-white rounded max-w-4xl">
+    <div className="container mx-auto my-8 p-4 sm:p-6 md:p-8 bg-white rounded max-w-4xl">
       <h1 className="text-4xl font-bold mb-6 text-center">
         Public Profile Link
       </h1>
@@ -121,12 +121,12 @@ export default function SendMessage() {
           />
           <div className="flex justify-center">
             {isLoading ? (
-              <Button disabled>
+              <Button disabled className="w-full md:w-auto">
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Please wait
               </Button>
             ) : (
-              <Button type="submit" disabled={isLoading || !messageContent}>
+              <Button type="submit" disabled={isLoading || !messageContent} className="w-full md:w-auto">
                 Send It
               </Button>
             )}
@@ -138,26 +138,26 @@ export default function SendMessage() {
         <div className="space-y-2">
           <Button
             onClick={fetchSuggestedMessages}
-            className="my-4"
+            className="my-4 w-full md:w-auto"
             disabled={isSuggestLoading}
           >
             Suggest Messages
           </Button>
-          <p>Click on any message below to select it.</p>
+          <p className="text-center md:text-left">Click on any message below to select it.</p>
         </div>
         <Card>
           <CardHeader>
-            <h3 className="text-xl font-semibold">Messages</h3>
+            <h3 className="text-xl font-semibold text-center md:text-left">Messages</h3>
           </CardHeader>
           <CardContent className="flex flex-col space-y-4">
             {error ? (
-              <p className="text-red-500">{error.message}</p>
+              <p className="text-red-500 text-center md:text-left">{error.message}</p>
             ) : (
               parseStringMessages(completion).map((message, index) => (
                 <Button
                   key={index}
                   variant="outline"
-                  className="mb-2"
+                  className="mb-2 w-full md:w-auto"
                   onClick={() => handleMessageClick(message)}
                 >
                   {message}
@@ -171,7 +171,7 @@ export default function SendMessage() {
       <div className="text-center">
         <div className="mb-4">Get Your Message Board</div>
         <Link href={'/sign-up'}>
-          <Button>Create Your Account</Button>
+          <Button className="w-full md:w-auto">Create Your Account</Button>
         </Link>
       </div>
     </div>
